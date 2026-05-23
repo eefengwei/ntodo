@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+._*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# Local drafts (not ready to publish)
+_drafts/
