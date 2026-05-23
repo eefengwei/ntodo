@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en" class="lang-en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>技术笔记 · eefengwei</title>
+  <title>Tech Notes · eefengwei</title>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -36,6 +36,26 @@
       min-height: 100vh;
       line-height: 1.7;
     }
+
+    /* ── LANGUAGE TOGGLE ── */
+    html.lang-en .zh { display: none; }
+    html.lang-zh .en { display: none; }
+
+    .lang-btn {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 0 12px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      height: 28px;
+      flex-shrink: 0;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .lang-btn:hover { color: var(--accent); border-color: var(--accent); }
 
     /* ── TOP NAV ── */
     .topnav {
@@ -307,6 +327,7 @@
       background: #2a2010;
       color: var(--yellow);
       border: 1px solid #5c4a1e;
+      white-space: nowrap;
     }
 
     /* ── DIVIDER ── */
@@ -340,10 +361,11 @@
 <!-- TOP NAV -->
 <nav class="topnav">
   <a href="#" class="nav-brand">eefengwei.github.io</a>
-  <a href="#" class="active">▸ 技术笔记</a>
-  <a href="#ai-engineering">▸ AI 工程实战</a>
-  <a href="#multimedia">▸ 多媒体处理</a>
-  <a href="#">▸ 关于</a>
+  <a href="#" class="active">▸ <span class="en">Tech Notes</span><span class="zh">技术笔记</span></a>
+  <a href="#ai-engineering">▸ <span class="en">AI Engineering</span><span class="zh">AI 工程实战</span></a>
+  <a href="#multimedia">▸ <span class="en">Multimedia</span><span class="zh">多媒体处理</span></a>
+  <a href="#">▸ <span class="en">About</span><span class="zh">关于</span></a>
+  <button class="lang-btn" id="langBtn" onclick="toggleLang()">中文</button>
 </nav>
 
 <div class="layout">
@@ -351,12 +373,12 @@
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-group">
-      <div class="sidebar-label">目录</div>
-      <a href="#ai-engineering" class="active">AI 工程实战</a>
-      <a href="#multimedia">多媒体处理</a>
+      <div class="sidebar-label"><span class="en">Contents</span><span class="zh">目录</span></div>
+      <a href="#ai-engineering" class="active"><span class="en">AI Engineering</span><span class="zh">AI 工程实战</span></a>
+      <a href="#multimedia"><span class="en">Multimedia</span><span class="zh">多媒体处理</span></a>
     </div>
     <div class="sidebar-group">
-      <div class="sidebar-label">标签索引</div>
+      <div class="sidebar-label"><span class="en">Tag Index</span><span class="zh">标签索引</span></div>
       <a href="#">CUDA <span class="sidebar-tag tag-cuda">cuda</span></a>
       <a href="#">TensorRT <span class="sidebar-tag tag-cuda">trt</span></a>
       <a href="#">PyTorch <span class="sidebar-tag tag-ml">ml</span></a>
@@ -364,7 +386,7 @@
       <a href="#">Video <span class="sidebar-tag tag-gpu">video</span></a>
     </div>
     <div class="sidebar-group">
-      <div class="sidebar-label">外部链接</div>
+      <div class="sidebar-label"><span class="en">Links</span><span class="zh">外部链接</span></div>
       <a href="https://github.com/eefengwei" target="_blank">↗ GitHub</a>
     </div>
   </aside>
@@ -374,42 +396,53 @@
 
     <!-- HERO -->
     <section class="hero">
-      <div class="hero-eyebrow">// 个人技术笔记</div>
-      <h1>深度学习基础设施<br>与系统工程笔记</h1>
-      <p>记录 GPU/CUDA 软件栈、容器部署、ML 工程化等领域的实战踩坑与原理梳理。内容以第一手实验为主，拒绝搬运。</p>
+      <div class="hero-eyebrow">
+        <span class="en">// Personal Tech Notes</span>
+        <span class="zh">// 个人技术笔记</span>
+      </div>
+      <h1>
+        <span class="en">Deep Learning Infrastructure<br>&amp; Systems Engineering Notes</span>
+        <span class="zh">深度学习基础设施<br>与系统工程笔记</span>
+      </h1>
+      <p>
+        <span class="en">Field notes on GPU/CUDA software stacks, container deployment, and ML engineering — grounded in first-hand experiments, no recycled docs.</span>
+        <span class="zh">记录 GPU/CUDA 软件栈、容器部署、ML 工程化等领域的实战踩坑与原理梳理。内容以第一手实验为主，拒绝搬运。</span>
+      </p>
       <div class="hero-stats">
         <div class="stat">
           <span class="stat-num">1</span>
-          <span class="stat-label">已发布</span>
+          <span class="stat-label"><span class="en">Published</span><span class="zh">已发布</span></span>
         </div>
         <div class="stat">
           <span class="stat-num">4+</span>
-          <span class="stat-label">进行中</span>
+          <span class="stat-label"><span class="en">In Progress</span><span class="zh">进行中</span></span>
         </div>
         <div class="stat">
           <span class="stat-num">2026</span>
-          <span class="stat-label">持续更新</span>
+          <span class="stat-label"><span class="en">Ongoing</span><span class="zh">持续更新</span></span>
         </div>
       </div>
     </section>
 
-    <!-- SECTION 01 · AI 工程实战 -->
+    <!-- SECTION 01 -->
     <div id="ai-engineering" class="section-head">
       <div class="section-num">01</div>
-      <h2>AI 工程实战</h2>
+      <h2><span class="en">AI Engineering</span><span class="zh">AI 工程实战</span></h2>
     </div>
     <div class="divider"></div>
 
     <div class="cards">
-      <!-- Published article -->
       <a class="card" href="nvidia-cuda-compatibility.html">
         <div class="card-header">
-          <span class="card-title">NVIDIA GPU / CUDA 软件栈兼容性完整笔记</span>
+          <span class="card-title">
+            <span class="en">NVIDIA GPU / CUDA Software Stack Compatibility: Complete Notes</span>
+            <span class="zh">NVIDIA GPU / CUDA 软件栈兼容性完整笔记</span>
+          </span>
           <span class="card-arrow">→</span>
         </div>
         <p class="card-desc">
-          从容器环境驱动架构、x86 vs GPU 兼容哲学、CUDA Toolkit 组件详解，到 TensorRT 版本关系与
-          cuda-compat 实操，系统梳理"上层不能超过下层支持上限"这一核心规则及其所有推论。
+          <span class="en">From container driver architecture and the x86-vs-GPU compatibility philosophy, through CUDA Toolkit internals, to TensorRT version relationships and cuda-compat in practice — a systematic walkthrough of the core rule "upper layers cannot exceed the ceiling set by lower layers."</span>
+          <span class="zh">从容器环境驱动架构、x86 vs GPU 兼容哲学、CUDA Toolkit 组件详解，到 TensorRT 版本关系与 cuda-compat 实操，系统梳理"上层不能超过下层支持上限"这一核心规则及其所有推论。</span>
         </p>
         <div class="card-meta">
           <span class="chip cuda"><span class="chip-dot"></span>CUDA</span>
@@ -420,13 +453,18 @@
         </div>
       </a>
 
-      <!-- WIP -->
       <div class="card card-wip">
         <div class="card-header">
-          <span class="card-title">nvidia-smi vs nvcc：你以为你懂，其实你不懂</span>
-          <span class="badge-wip">即将发布</span>
+          <span class="card-title">
+            <span class="en">nvidia-smi vs nvcc: What You Think You Know vs. Reality</span>
+            <span class="zh">nvidia-smi vs nvcc：你以为你懂，其实你不懂</span>
+          </span>
+          <span class="badge-wip"><span class="en">Coming Soon</span><span class="zh">即将发布</span></span>
         </div>
-        <p class="card-desc">深入解析两个命令背后的不同数据来源，以及为什么它们显示的版本号经常对不上。</p>
+        <p class="card-desc">
+          <span class="en">A deep dive into the different data sources behind each command, and why the version numbers they show are often mismatched.</span>
+          <span class="zh">深入解析两个命令背后的不同数据来源，以及为什么它们显示的版本号经常对不上。</span>
+        </p>
         <div class="card-meta">
           <span class="chip cuda"><span class="chip-dot"></span>CUDA</span>
           <span class="chip linux"><span class="chip-dot"></span>Linux</span>
@@ -434,20 +472,26 @@
       </div>
     </div>
 
-    <!-- SECTION 02 · 多媒体处理 -->
+    <!-- SECTION 02 -->
     <div id="multimedia" class="section-head">
       <div class="section-num">02</div>
-      <h2>多媒体处理</h2>
+      <h2><span class="en">Multimedia</span><span class="zh">多媒体处理</span></h2>
     </div>
     <div class="divider"></div>
 
     <div class="cards">
       <div class="card card-wip">
         <div class="card-header">
-          <span class="card-title">FFmpeg 硬件加速完全指南：NVENC / NVDEC 实战</span>
-          <span class="badge-wip">即将发布</span>
+          <span class="card-title">
+            <span class="en">FFmpeg Hardware Acceleration: The Complete NVENC / NVDEC Guide</span>
+            <span class="zh">FFmpeg 硬件加速完全指南：NVENC / NVDEC 实战</span>
+          </span>
+          <span class="badge-wip"><span class="en">Coming Soon</span><span class="zh">即将发布</span></span>
         </div>
-        <p class="card-desc">从软件编解码到 GPU 硬件加速，详解 FFmpeg 与 NVIDIA 显卡的协作方式，以及如何榨干编码吞吐量。</p>
+        <p class="card-desc">
+          <span class="en">From software encode/decode to GPU hardware acceleration — how FFmpeg integrates with NVIDIA GPUs and how to maximize encoding throughput.</span>
+          <span class="zh">从软件编解码到 GPU 硬件加速，详解 FFmpeg 与 NVIDIA 显卡的协作方式，以及如何榨干编码吞吐量。</span>
+        </p>
         <div class="card-meta">
           <span class="chip gpu"><span class="chip-dot"></span>NVENC</span>
           <span class="chip cuda"><span class="chip-dot"></span>CUDA</span>
@@ -456,10 +500,16 @@
 
       <div class="card card-wip">
         <div class="card-header">
-          <span class="card-title">视频流处理：实时转码管线的设计与踩坑</span>
-          <span class="badge-wip">即将发布</span>
+          <span class="card-title">
+            <span class="en">Video Stream Processing: Real-time Transcoding Pipeline Design</span>
+            <span class="zh">视频流处理：实时转码管线的设计与踩坑</span>
+          </span>
+          <span class="badge-wip"><span class="en">Coming Soon</span><span class="zh">即将发布</span></span>
         </div>
-        <p class="card-desc">基于 GStreamer / FFmpeg 构建低延迟实时转码管线，涵盖缓冲策略、时间戳同步与丢帧处理。</p>
+        <p class="card-desc">
+          <span class="en">Building a low-latency real-time transcoding pipeline with GStreamer / FFmpeg: buffering strategy, timestamp sync, and dropped-frame handling.</span>
+          <span class="zh">基于 GStreamer / FFmpeg 构建低延迟实时转码管线，涵盖缓冲策略、时间戳同步与丢帧处理。</span>
+        </p>
         <div class="card-meta">
           <span class="chip ml"><span class="chip-dot"></span>Streaming</span>
           <span class="chip gpu"><span class="chip-dot"></span>Video</span>
@@ -478,6 +528,38 @@
 
   </main>
 </div>
+
+<script>
+  function toggleLang() {
+    const html = document.documentElement;
+    const btn = document.getElementById('langBtn');
+    const isEn = html.classList.contains('lang-en');
+    if (isEn) {
+      html.classList.replace('lang-en', 'lang-zh');
+      html.lang = 'zh-CN';
+      btn.textContent = 'EN';
+      localStorage.setItem('lang', 'zh');
+      document.title = '技术笔记 · eefengwei';
+    } else {
+      html.classList.replace('lang-zh', 'lang-en');
+      html.lang = 'en';
+      btn.textContent = '中文';
+      localStorage.setItem('lang', 'en');
+      document.title = 'Tech Notes · eefengwei';
+    }
+  }
+
+  (function () {
+    const saved = localStorage.getItem('lang');
+    if (saved === 'zh') {
+      const html = document.documentElement;
+      html.classList.replace('lang-en', 'lang-zh');
+      html.lang = 'zh-CN';
+      document.getElementById('langBtn').textContent = 'EN';
+      document.title = '技术笔记 · eefengwei';
+    }
+  })();
+</script>
 
 </body>
 </html>
