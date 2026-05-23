@@ -67,6 +67,15 @@ footer          返回首页链接（双语）
 
 ---
 
+## 标题排版规范
+
+- 文章主标题（`h1` / `.doc-title`）中英文都**不使用 `<br>` 强制换行**
+- `.hero h1` 设置 `white-space: nowrap` 以防自动折行
+- 若标题过长导致换行，优先**缩小 font-size**（如从 32px 降至 24px），而非拆行
+- index.html 首页 hero 标题当前为 `font-size: 24px; white-space: nowrap`
+
+---
+
 ## 双语实现规范
 
 **CSS**（在 `<style>` 中添加）：
