@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NVIDIA GPU / CUDA 软件栈兼容性完整笔记</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --bg2: #161b27;
+    --bg3: #1e2535;
+    --bg4: #252d42;
+    --border: #2a3350;
+    --text: #c8d3f5;
+    --text2: #7c8db0;
+    --text3: #4a5680;
+    --green: #4fd6be;
+    --green-dim: #1e3d38;
+    --blue: #82aaff;
+    --blue-dim: #1a2540;
+    --amber: #ffc777;
+    --amber-dim: #2d2010;
+    --red: #ff757f;
+    --red-dim: #2d1015;
+    --purple: #c099ff;
+    --purple-dim: #1e1535;
+    --teal: #4fd6be;
+    --accent: #82aaff;
+    --code-bg: #111827;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 15px;
+    line-height: 1.8;
+    padding: 0;
+  }
+
+  /* ─── HEADER ─── */
+  .doc-header {
+    background: linear-gradient(135deg, #0d1424 0%, #131c35 50%, #0d1424 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 56px 48px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .doc-header::before {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 360px; height: 360px;
+    background: radial-gradient(circle, rgba(130,170,255,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .doc-header::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: 10%;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(79,214,190,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .doc-header h1 {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #e2e8f8;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+  }
+  .doc-header .subtitle {
+    color: var(--text2);
+    font-size: 14px;
+    display: flex; gap: 16px; flex-wrap: wrap;
+  }
+  .doc-header .subtitle span {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .doc-header .subtitle span::before {
+    content: '▸';
+    color: var(--blue);
+    font-size: 11px;
+  }
+
+  /* ─── LAYOUT ─── */
+  .container { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .sidebar-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--text3);
+    text-transform: uppercase;
+    padding: 0 20px 12px;
+  }
+  .nav-item {
+    display: block;
+    padding: 7px 20px;
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 13px;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .nav-item:hover { color: var(--blue); background: var(--blue-dim); border-left-color: var(--blue); }
+  .nav-item.sub { padding-left: 32px; font-size: 12px; }
+
+  .content { flex: 1; padding: 48px 56px; max-width: 900px; }
+
+  /* ─── SECTIONS ─── */
+  .chapter {
+    margin-bottom: 64px;
+    scroll-margin-top: 24px;
+  }
+  .chapter-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .chapter-num {
+    width: 40px; height: 40px;
+    background: var(--blue-dim);
+    border: 1px solid var(--blue);
+    border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--blue);
+    flex-shrink: 0;
+  }
+  .chapter-title { font-family: 'Noto Serif SC', serif; font-size: 22px; font-weight: 700; color: #e2e8f8; }
+
+  h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #c8d3f5;
+    margin: 32px 0 14px;
+    padding-left: 12px;
+    border-left: 3px solid var(--green);
+  }
+  h4 { font-size: 14px; font-weight: 700; color: var(--amber); margin: 20px 0 10px; }
+
+  p { color: var(--text); margin-bottom: 12px; }
+
+  /* ─── KEY RULE BOX ─── */
+  .rule-box {
+    background: var(--bg3);
+    border: 1px solid var(--blue);
+    border-left: 4px solid var(--blue);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin: 20px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--blue);
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+  .rule-box .label {
+    font-size: 11px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    font-family: 'Noto Sans SC', sans-serif;
+  }
+
+  /* ─── DIAGRAM: LAYER STACK ─── */
+  .layer-stack { margin: 24px 0; }
+  .layer {
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 3px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .layer-num {
+    width: 36px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .layer-body { flex: 1; padding: 12px 16px; }
+  .layer-name { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+  .layer-desc { font-size: 12px; color: var(--text2); }
+  .layer-tag {
+    padding: 12px 14px;
+    font-size: 11px;
+    color: var(--text3);
+    display: flex; align-items: center;
+    flex-shrink: 0;
+    border-left: 1px solid var(--border);
+  }
+  .layer-arrow {
+    text-align: center;
+    color: var(--text3);
+    font-size: 13px;
+    padding: 2px 0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  /* layer colors */
+  .l-app    { background: #1a1535; } .l-app .layer-num    { background: #2a1f5a; color: var(--purple); }
+  .l-toolkit{ background: #0d2020; } .l-toolkit .layer-num{ background: #1a3030; color: var(--green); }
+  .l-runtime{ background: #0d1830; } .l-runtime .layer-num{ background: #1a2844; color: var(--blue); }
+  .l-user   { background: #2a1f0d; } .l-user .layer-num   { background: #3a2d10; color: var(--amber); }
+  .l-kernel { background: #2d0e0e; } .l-kernel .layer-num { background: #3d1212; color: var(--red); }
+  .l-hw     { background: #1a1a1a; } .l-hw .layer-num     { background: #252525; color: var(--text2); }
+
+  /* ─── TABLE ─── */
+  .tbl-wrap { overflow-x: auto; margin: 16px 0; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: var(--bg4); }
+  thead th { padding: 11px 14px; text-align: left; font-weight: 700; color: var(--blue); font-size: 12px; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--bg3); }
+  tbody td { padding: 10px 14px; color: var(--text); vertical-align: top; }
+  td code, th code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; color: var(--amber); }
+
+  /* ─── CODE BLOCK ─── */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    overflow-x: auto;
+    margin: 14px 0;
+    position: relative;
+  }
+  pre code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #a9b8e8;
+  }
+  .code-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    background: var(--bg4);
+    padding: 3px 10px;
+    border-radius: 4px;
+    position: absolute;
+    top: 10px; right: 12px;
+  }
+  .kw { color: var(--purple); }
+  .fn { color: var(--blue); }
+  .st { color: var(--green); }
+  .cm { color: #4a5680; font-style: italic; }
+  .nm { color: var(--amber); }
+
+  /* ─── INLINE CODE ─── */
+  code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: var(--bg3); padding: 1px 5px; border-radius: 4px; color: var(--amber); border: 1px solid var(--border); }
+
+  /* ─── BADGE ─── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .badge-green { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+  .badge-red   { background: var(--red-dim);   color: var(--red);   border: 1px solid var(--red); }
+  .badge-amber { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
+  .badge-blue  { background: var(--blue-dim);  color: var(--blue);  border: 1px solid var(--blue); }
+  .badge-gray  { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+
+  /* ─── CALLOUT ─── */
+  .callout {
+    background: var(--bg3);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin: 16px 0;
+    display: flex;
+    gap: 12px;
+    font-size: 14px;
+    border: 1px solid var(--border);
+  }
+  .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .callout.warn { border-left: 3px solid var(--amber); }
+  .callout.info { border-left: 3px solid var(--blue); }
+  .callout.danger { border-left: 3px solid var(--red); }
+  .callout.tip { border-left: 3px solid var(--green); }
+
+  /* ─── SVG DIAGRAMS ─── */
+  .diagram-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin: 20px 0;
+    overflow-x: auto;
+  }
+  .diagram-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .diagram-title::before { content: '◈'; color: var(--blue); }
+
+  /* ─── COMPAT MATRIX ─── */
+  .matrix-cell { text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; }
+  .mc-c  { color: var(--green); }
+  .mc-x  { color: var(--red); opacity: 0.5; }
+  .mc-na { color: var(--text3); }
+
+  /* ─── FLOW DIAGRAM ─── */
+  .flow { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+  .flow-step {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .flow-box {
+    flex: 1; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 16px;
+    font-size: 13px;
+  }
+  .flow-arrow { color: var(--text3); font-size: 20px; text-align: center; padding: 2px 0; padding-left: 20px; }
+  .flow-label { font-size: 11px; color: var(--text2); margin-left: 32px; margin-bottom: 4px; font-style: italic; }
+
+  /* ─── COMPARISON GRID ─── */
+  .cmp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .cmp-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+  }
+  .cmp-card h4 { margin-top: 0; }
+  .cmp-card ul { list-style: none; padding: 0; }
+  .cmp-card li { padding: 4px 0; font-size: 13px; color: var(--text2); }
+  .cmp-card li::before { content: '→ '; color: var(--blue); font-weight: 700; }
+
+  /* ─── ENGINE COMPAT ─── */
+  .compat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .compat-item {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+  .compat-item .ci-title { font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+  .compat-item .ci-bad { color: var(--red); font-size: 12px; }
+  .compat-item .ci-good { color: var(--green); font-size: 12px; }
+
+  /* ─── COMPONENT CARDS ─── */
+  .comp-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .comp-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .comp-card .cc-name { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: var(--amber); margin-bottom: 6px; }
+  .comp-card .cc-desc { font-size: 12px; color: var(--text2); line-height: 1.6; }
+
+  /* ─── DECISION TREE ─── */
+  .dtree { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin: 16px 0; }
+  .dtree pre { background: none; border: none; padding: 0; margin: 0; }
+  .dtree pre code { color: var(--text2); font-size: 13px; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .content { padding: 24px 20px; }
+    .cmp-grid, .compat-grid, .comp-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <h1>NVIDIA GPU / CUDA 软件栈兼容性完整笔记</h1>
+  <div class="subtitle">
+    <span>容器环境驱动架构</span>
+    <span>x86 vs GPU 兼容哲学</span>
+    <span>CUDA Toolkit 组件详解</span>
+    <span>TensorRT 版本关系</span>
+    <span>cuda-compat 实操</span>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ══ SIDEBAR ══ -->
+<nav class="sidebar">
+  <div class="sidebar-title">目录</div>
+  <a class="nav-item" href="#ch1">1. 整体架构与兼容原则</a>
+  <a class="nav-item sub" href="#ch1-stack">软件栈分层</a>
+  <a class="nav-item sub" href="#ch1-rule">核心兼容规则</a>
+  <a class="nav-item sub" href="#ch1-pytorch">PyTorch 兼容矩阵</a>
+  <a class="nav-item" href="#ch2">2. nvidia-smi 在容器内</a>
+  <a class="nav-item" href="#ch3">3. GPU vs CPU 兼容逻辑</a>
+  <a class="nav-item sub" href="#ch3-x86">x86 向后兼容</a>
+  <a class="nav-item sub" href="#ch3-gpu">GPU 向前兼容</a>
+  <a class="nav-item sub" href="#ch3-cmp">对比总结</a>
+  <a class="nav-item" href="#ch4">4. CUDA Toolkit 组件</a>
+  <a class="nav-item sub" href="#ch4-compiler">编译工具链</a>
+  <a class="nav-item sub" href="#ch4-runtime">运行时库</a>
+  <a class="nav-item sub" href="#ch4-math">数学与 DL 库</a>
+  <a class="nav-item sub" href="#ch4-tool">调试工具</a>
+  <a class="nav-item" href="#ch5">5. TensorRT 版本关系</a>
+  <a class="nav-item sub" href="#ch5-matrix">版本兼容矩阵</a>
+  <a class="nav-item sub" href="#ch5-engine">引擎可移植性</a>
+  <a class="nav-item" href="#ch6">6. cuda-compat 详解</a>
+  <a class="nav-item sub" href="#ch6-how">工作原理</a>
+  <a class="nav-item sub" href="#ch6-matrix">兼容矩阵</a>
+  <a class="nav-item sub" href="#ch6-pitfall">实操问题</a>
+  <a class="nav-item" href="#appendix">附录：诊断命令</a>
+</nav>
+
+<!-- ══ MAIN CONTENT ══ -->
+<main class="content">
+
+<!-- ══════════════ CHAPTER 1 ══════════════ -->
+<section class="chapter" id="ch1">
+  <div class="chapter-header">
+    <div class="chapter-num">01</div>
+    <div class="chapter-title">容器环境下的整体架构与兼容原则</div>
+  </div>
+
+  <h3 id="ch1-rule">核心兼容规则</h3>
+  <div class="rule-box">
+    <div class="label">最重要的一条规则</div>
+    Driver CUDA Max Version &nbsp;≥&nbsp; CUDA Toolkit Version &nbsp;≥&nbsp; CUDA Runtime Version
+  </div>
+  <p>三层版本从上到下必须保持"上层不能超过下层支持上限"的关系，但具有向下兼容性。<code>nvidia-smi</code> 右上角显示的 <code>CUDA Version</code> 是整个容器环境的天花板。</p>
+
+  <h3 id="ch1-stack">软件栈分层架构</h3>
+  <div class="layer-stack">
+    <div class="layer l-app">
+      <div class="layer-num">L5</div>
+      <div class="layer-body">
+        <div class="layer-name" style="color:#c099ff">应用层</div>
+        <div class="layer-desc">PyTorch · TensorFlow · JAX · ONNX Runtime</div>
+      </div>
+      <div class="layer-tag">pip 安装</div>
+    </div>
+    <div class="layer-arrow">↑ 需要 CUDA Runtime ≥ 最低版本</div>
+    <div class="layer l-toolkit">
+      <div class="layer-num">L4</div>
+      <div class="layer-body">
+        <div class="layer-name" style="color:#4fd6be">CUDA Toolkit（容器内）</div>
+        <div class="layer-desc">nvcc · cuBLAS · cuDNN · NCCL · libcuda.so stub</div>
+      </div>
+      <div class="layer-tag">NGC / Docker 镜像</div>
+    </div>
+    <div class="layer-arrow">↑ CUDA 版本 ≤ 宿主机驱动支持的最高版本</div>
+    <div class="layer l-runtime">
+      <div class="layer-num">L3</div>
+      <div class="layer-body">
+        <div class="layer-name" style="color:#82aaff">NVIDIA Container Runtime</div>
+        <div class="layer-desc">nvidia-container-toolkit · libnvidia-container · device plugin</div>
+      </div>
+      <div class="layer-tag">宿主机安装</div>
+    </div>
+    <div class="layer-arrow">↑ 挂载 /dev/nvidia* 及宿主机 libcuda.so（真实实现）</div>
+    <div class="layer l-user">
+      <div class="layer-num">L2</div>
+      <div class="layer-body">
+        <div class="layer-name" style="color:#ffc777">宿主机用户态驱动</div>
+        <div class="layer-desc">libcuda.so · libnvidia-ml.so（NVML）· nvidia-smi</div>
+      </div>
+      <div class="layer-tag">随内核模块安装</div>
+    </div>
+    <div class="layer-arrow">↑ ioctl 系统调用</div>
+    <div class="layer l-kernel">
+      <div class="layer-num">L1</div>
+      <div class="layer-body">
+        <div class="layer-name" style="color:#ff757f">宿主机内核模块</div>
+        <div class="layer-desc">nvidia.ko · nvidia-uvm.ko · nvidia-modeset.ko</div>
+      </div>
+      <div class="layer-tag">apt / rpm 安装</div>
+    </div>
+    <div class="layer-arrow">↑ PCIe 物理访问</div>
+    <div class="layer l-hw">
+      <div class="layer-num">L0</div>
+      <div class="layer-body">
+        <div class="layer-name" style="color:#888">GPU 硬件（NVIDIA）</div>
+        <div class="layer-desc">物理 GPU 芯片</div>
+      </div>
+      <div class="layer-tag">物理硬件</div>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-icon">💡</div>
+    <div>容器内<strong>不需要安装宿主机驱动</strong>。nvidia-container-toolkit 启动时自动将宿主机的 <code>libcuda.so</code>（真实实现）注入容器，覆盖容器内 Toolkit 提供的 stub。容器内的 stub 仅用于编译链接。</div>
+  </div>
+
+  <h3>驱动版本与支持的最高 CUDA 版本</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>驱动版本（大约）</th><th>支持的最高 CUDA 版本</th><th>典型用途</th></tr></thead>
+      <tbody>
+        <tr><td>≥ 450.x</td><td>CUDA 11.0</td><td>V100 等旧架构</td></tr>
+        <tr><td>≥ 525.x</td><td>CUDA 12.0</td><td>A100 主流训练环境</td></tr>
+        <tr><td>≥ 535.x</td><td>CUDA 12.2</td><td></td></tr>
+        <tr><td>≥ 545.x</td><td>CUDA 12.3</td><td></td></tr>
+        <tr><td>≥ 550.x</td><td>CUDA 12.4</td><td></td></tr>
+        <tr><td>≥ 560.x</td><td>CUDA 12.6</td><td></td></tr>
+        <tr><td>≥ 570.x</td><td>CUDA 12.8</td><td>H100 / B100 推荐</td></tr>
+        <tr><td>≥ 580.x</td><td>CUDA 13.0</td><td>Blackwell 系列</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="ch1-pytorch">PyTorch 版本与 CUDA 兼容矩阵</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>PyTorch 版本</th><th>支持的 CUDA 版本</th><th>备注</th></tr></thead>
+      <tbody>
+        <tr><td>2.0.x</td><td>11.7 / 11.8</td><td></td></tr>
+        <tr><td>2.1.x</td><td>11.8 / 12.1</td><td></td></tr>
+        <tr><td>2.2.x</td><td>11.8 / 12.1</td><td></td></tr>
+        <tr><td>2.3.x</td><td>11.8 / 12.1</td><td></td></tr>
+        <tr><td>2.4.x</td><td>11.8 / 12.1 / 12.4</td><td>新增 12.4 支持</td></tr>
+        <tr><td>2.5.x</td><td>11.8 / 12.1 / 12.4</td><td></td></tr>
+        <tr><td>2.6.x</td><td>11.8 / 12.4 / 12.6</td><td>推荐使用 12.4+</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>推荐版本选型流程</h3>
+  <div class="flow">
+    <div class="flow-step"><div class="flow-box" style="border-color:var(--purple);"><strong>① 确认 GPU 型号</strong> → 查对应的 Compute Capability（如 A100 = sm_80）</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-box" style="border-color:var(--blue);"><strong>② 运行 nvidia-smi</strong> → 记录 Driver Version 和 CUDA Version（天花板）</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-box" style="border-color:var(--green);"><strong>③ 选 PyTorch 版本</strong> → 查官网矩阵，找目标功能所需版本</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-box" style="border-color:var(--amber);"><strong>④ 确定 CUDA Toolkit 版本</strong> → 必须 ≤ 第②步的上限</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-box" style="border-color:var(--teal);"><strong>⑤ 选 NGC 基础镜像</strong> → <code>nvidia/cuda:&lt;ver&gt;-cudnn&lt;ver&gt;-devel-ubuntu22.04</code></div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-box"><strong>⑥ 在镜像内安装 PyTorch</strong> → <code>pip install torch==&lt;ver&gt; --index-url https://download.pytorch.org/whl/cu&lt;ver&gt;</code></div></div>
+  </div>
+</section>
+
+<!-- ══════════════ CHAPTER 2 ══════════════ -->
+<section class="chapter" id="ch2">
+  <div class="chapter-header">
+    <div class="chapter-num">02</div>
+    <div class="chapter-title">容器内 nvidia-smi 显示的是哪里的驱动？</div>
+  </div>
+
+  <div class="rule-box">
+    <div class="label">结论</div>
+    容器内 nvidia-smi 显示的是 <strong>宿主机</strong> 的驱动信息
+  </div>
+
+  <p>nvidia-container-toolkit 在启动容器时，将以下宿主机文件挂载/注入进容器：</p>
+  <pre><code><span class="cm"># 宿主机注入到容器内的文件</span>
+/usr/bin/nvidia-smi               <span class="cm">← 宿主机的可执行文件</span>
+/usr/lib/.../libcuda.so           <span class="cm">← 宿主机的用户态驱动库</span>
+/dev/nvidia0, /dev/nvidiactl      <span class="cm">← 宿主机的设备文件</span></code></pre>
+
+  <h3>典型迷惑场景</h3>
+  <pre><code><span class="cm"># 容器内执行：</span>
+$ <span class="fn">nvidia-smi</span>
+Driver Version: <span class="nm">535.104.05</span>    <span class="cm">← 这是宿主机驱动版本</span>
+CUDA Version: <span class="nm">12.2</span>             <span class="cm">← 该驱动支持的最高 CUDA（上限）</span>
+
+<span class="cm"># 但容器内 Toolkit 版本可能完全不同：</span>
+$ <span class="fn">nvcc</span> --version
+Cuda compilation tools, release <span class="nm">11.8</span>   <span class="cm">← 容器内实际安装的 Toolkit</span></code></pre>
+
+  <div class="callout warn">
+    <div class="callout-icon">⚠️</div>
+    <div>两个数字不一样是<strong>完全正常的</strong>，很多人误以为两者应该一致，这是常见误区。</div>
+  </div>
+
+  <h3>各命令含义对照</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>命令</th><th>来源</th><th>显示内容</th></tr></thead>
+      <tbody>
+        <tr><td><code>nvidia-smi</code></td><td>宿主机注入</td><td>宿主机驱动版本、GPU 显存、进程占用</td></tr>
+        <tr><td><code>nvcc --version</code></td><td>容器内 Toolkit</td><td>容器内编译工具链的 CUDA 版本</td></tr>
+        <tr><td><code>python -c "import torch; print(torch.version.cuda)"</code></td><td>PyTorch 编译时链接</td><td>PyTorch 实际使用的 CUDA 版本</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══════════════ CHAPTER 3 ══════════════ -->
+<section class="chapter" id="ch3">
+  <div class="chapter-header">
+    <div class="chapter-num">03</div>
+    <div class="chapter-title">NVIDIA GPU vs x86 CPU 软件兼容逻辑对比</div>
+  </div>
+
+  <div class="cmp-grid">
+    <div class="cmp-card" style="border-color:var(--blue);">
+      <h4 id="ch3-x86" style="color:var(--blue)">🖥️ x86 CPU：向后兼容</h4>
+      <ul>
+        <li>旧二进制永远能跑在新 CPU 上</li>
+        <li>ISA 只增不减，从不删除指令</li>
+        <li>CPUID 指令运行时探测扩展集</li>
+        <li>一份二进制，动态分派最优路径</li>
+        <li>编译目标锁定风险极低</li>
+        <li>通常不需要 JIT</li>
+      </ul>
+    </div>
+    <div class="cmp-card" style="border-color:var(--green);">
+      <h4 id="ch3-gpu" style="color:var(--green)">🎮 NVIDIA GPU：向前兼容</h4>
+      <ul>
+        <li>CUBIN 绑定具体 sm_XY，不跨架构</li>
+        <li>每代 GPU 有全新 SM 架构</li>
+        <li>PTX 虚拟 ISA 提供跨代桥梁</li>
+        <li>Fat binary 打包多版本 CUBIN + PTX</li>
+        <li>编译目标锁定风险高，需显式包含 PTX</li>
+        <li>几乎必须依赖 PTX JIT</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>x86 ISA 扩展集历史</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>年份</th><th>扩展</th><th>新增能力</th><th>代表 CPU</th></tr></thead>
+      <tbody>
+        <tr><td>1997</td><td><code>MMX</code></td><td>整数 SIMD，64-bit 寄存器</td><td>Pentium MMX</td></tr>
+        <tr><td>1999</td><td><code>SSE</code></td><td>浮点 SIMD，128-bit XMM 寄存器</td><td>Pentium III</td></tr>
+        <tr><td>2001</td><td><code>SSE2</code></td><td>整数 128-bit 向量化</td><td>Pentium 4</td></tr>
+        <tr><td>2011</td><td><code>AVX</code></td><td>256-bit YMM 寄存器</td><td>Sandy Bridge</td></tr>
+        <tr><td>2013</td><td><code>AVX2</code></td><td>整数 256-bit SIMD</td><td>Haswell</td></tr>
+        <tr><td>2017</td><td><code>AVX-512</code></td><td>512-bit ZMM 寄存器</td><td>Skylake-X</td></tr>
+        <tr><td>2023</td><td><code>AMX</code></td><td>矩阵加速（专为 AI）</td><td>Sapphire Rapids</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>x86-64 微架构级别（v1–v4）</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>级别</th><th>最低 CPU 年代</th><th>典型受益特性</th></tr></thead>
+      <tbody>
+        <tr><td><code>x86-64-v1</code></td><td>所有 64-bit CPU</td><td>基础 SSE2</td></tr>
+        <tr><td><code>x86-64-v2</code></td><td>~2009 年后</td><td>SSE4.2, POPCNT</td></tr>
+        <tr><td><code>x86-64-v3</code></td><td>~2013 年后（Haswell/Zen1）</td><td>AVX2, BMI2</td></tr>
+        <tr><td><code>x86-64-v4</code></td><td>~2017 年后</td><td>AVX-512</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="ch3-cmp">NVIDIA GPU：SM 架构与 Compute Capability</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>SM 版本</th><th>架构代号</th><th>代表 GPU</th><th>特性亮点</th></tr></thead>
+      <tbody>
+        <tr><td><code>sm_70</code></td><td>Volta</td><td>V100</td><td>第一代 Tensor Core（FP16）</td></tr>
+        <tr><td><code>sm_75</code></td><td>Turing</td><td>RTX 2080, T4</td><td>INT8 Tensor Core，RT Core</td></tr>
+        <tr><td><code>sm_80</code></td><td>Ampere</td><td>A100, RTX 3090</td><td>BF16/TF32 Tensor Core，NVLink 3.0</td></tr>
+        <tr><td><code>sm_86</code></td><td>Ampere</td><td>RTX 3080</td><td>同代稍低端</td></tr>
+        <tr><td><code>sm_89</code></td><td>Ada Lovelace</td><td>RTX 4090, L4</td><td>FP8 Tensor Core</td></tr>
+        <tr><td><code>sm_90</code></td><td>Hopper</td><td>H100</td><td>Transformer Engine，FP8，第四代 Tensor Core</td></tr>
+        <tr><td><code>sm_100</code></td><td>Blackwell</td><td>B200, RTX 5090</td><td>FP4，第五代 Tensor Core</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>PTX vs CUBIN：两种编译产物</h3>
+  <div class="cmp-grid">
+    <div class="cmp-card" style="border-color:var(--amber);">
+      <h4 style="color:var(--amber)">CUBIN（SASS）— 真实机器码</h4>
+      <ul>
+        <li>绑定具体 sm_XY</li>
+        <li>运行性能最优</li>
+        <li>不跨 GPU 代际</li>
+        <li>sm_80 CUBIN ❌ 无法在 sm_75 上跑</li>
+      </ul>
+    </div>
+    <div class="cmp-card" style="border-color:var(--green);">
+      <h4 style="color:var(--green)">PTX — 虚拟 ISA（向前兼容）</h4>
+      <ul>
+        <li>不绑定具体硬件</li>
+        <li>驱动加载时 JIT 编译</li>
+        <li>提供向前兼容能力</li>
+        <li>PTX sm_80 ✅ 可在 sm_90 上 JIT</li>
+      </ul>
+    </div>
+  </div>
+
+  <pre><code><span class="cm"># PyTorch fat binary 内部结构示例</span>
+sm_70 CUBIN  <span class="cm"># V100 直接运行</span>
+sm_75 CUBIN  <span class="cm"># T4 直接运行</span>
+sm_80 CUBIN  <span class="cm"># A100 直接运行</span>
+sm_86 CUBIN  <span class="cm"># RTX 3080 直接运行</span>
+sm_89 PTX    <span class="cm"># 兜底：更新架构 JIT 编译</span></code></pre>
+
+  <h3>一句话总结</h3>
+  <div class="callout tip">
+    <div class="callout-icon">🏛️</div>
+    <div><strong>x86 是博物馆策略</strong>：每一件旧藏品永久保存，可随时使用任何年代的东西。<br><strong>NVIDIA 是博览会策略</strong>：每次展会都有全新展品（新 SM 架构），旧展品（CUBIN）不移过来，但你可以带着设计草图（PTX）来，现场加工成最新版本再用。</div>
+  </div>
+</section>
+
+<!-- ══════════════ CHAPTER 4 ══════════════ -->
+<section class="chapter" id="ch4">
+  <div class="chapter-header">
+    <div class="chapter-num">04</div>
+    <div class="chapter-title">CUDA Toolkit 包含哪些组件</div>
+  </div>
+
+  <h3 id="ch4-compiler">编译工具链</h3>
+  <div class="comp-grid">
+    <div class="comp-card">
+      <div class="cc-name">nvcc</div>
+      <div class="cc-desc">CUDA 编译器驱动（非编译器本身）。将 .cu 文件拆分为 CPU 部分（交给 g++/clang++）和 GPU 部分（走 cudafe++ → ptxas 管道）。</div>
+    </div>
+    <div class="comp-card">
+      <div class="cc-name">ptxas</div>
+      <div class="cc-desc">PTX → CUBIN 汇编器。决定 kernel 最终性能，提供寄存器使用分析、occupancy 报告。是决定 GPU 代码性能的关键工具。</div>
+    </div>
+    <div class="comp-card">
+      <div class="cc-name">fatbinary</div>
+      <div class="cc-desc">将多个不同架构的 CUBIN 和 PTX 打包成一个 fat binary，让单一可执行文件支持多种 GPU。</div>
+    </div>
+    <div class="comp-card">
+      <div class="cc-name">nvdisasm / cuobjdump</div>
+      <div class="cc-desc">反汇编和检查 CUBIN 内容，查看 SASS 机器码、寄存器分配等，用于调试底层性能问题。</div>
+    </div>
+  </div>
+
+  <h3 id="ch4-runtime">运行时库（核心中的核心）</h3>
+  <div class="callout info">
+    <div class="callout-icon">🔑</div>
+    <div>Driver API 与 Runtime API 是两层不同的接口，<strong>Driver API 随驱动发布（不在 Toolkit 里）</strong>，Runtime API 打包在 Toolkit 里。</div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>API 层</th><th>库文件</th><th>特点</th><th>常用场景</th></tr></thead>
+      <tbody>
+        <tr><td>CUDA Driver API</td><td><code>libcuda.so</code></td><td>最底层，显式管理 context/module/function，随驱动发布</td><td>底层框架开发</td></tr>
+        <tr><td>CUDA Runtime API</td><td><code>libcudart.so</code></td><td>高层封装，自动初始化，提供 cudaMalloc / &lt;&lt;&lt;&gt;&gt;&gt; 语法</td><td>绝大多数日常开发</td></tr>
+        <tr><td>NVML</td><td><code>libnvidia-ml.so</code></td><td>监控管理，nvidia-smi 背后的实现</td><td>运维监控、资源调度</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="ch4-math">数学 / 线性代数 / 深度学习库</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>库</th><th>作用</th><th>主要使用场景</th></tr></thead>
+      <tbody>
+        <tr><td><code>cuBLAS</code></td><td>稠密矩阵运算（GEMM 核心）</td><td>PyTorch / TF 矩阵乘，是 DL 性能的基石</td></tr>
+        <tr><td><code>cuBLASLt</code></td><td>支持 FP16/BF16/INT8 混合精度的轻量矩阵乘</td><td>Transformer 训练，直接利用 Tensor Core</td></tr>
+        <tr><td><code>cuSPARSE</code></td><td>稀疏矩阵运算</td><td>GNN 图神经网络</td></tr>
+        <tr><td><code>cuSOLVER</code></td><td>线性方程/特征值/SVD</td><td>科学计算、物理仿真</td></tr>
+        <tr><td><code>cuFFT</code></td><td>快速傅里叶变换</td><td>信号处理、医学影像</td></tr>
+        <tr><td><code>NPP</code></td><td>图像/像素级并行处理</td><td>计算机视觉预处理</td></tr>
+        <tr><td><code>cuDNN</code></td><td>卷积/池化/BN/激活/RNN/注意力算子</td><td>PyTorch 和 TF 的神经网络底层，8.6.3 前为 TRT 强依赖</td></tr>
+        <tr><td><code>cuTENSOR</code></td><td>任意维度张量收缩</td><td>物理仿真、量子化学</td></tr>
+        <tr><td><code>TensorRT</code></td><td>推理优化：图优化、量化、kernel 调优</td><td>生产推理部署，INT8/FP8 量化</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>多 GPU 通信库</h3>
+  <div class="comp-grid">
+    <div class="comp-card">
+      <div class="cc-name">NCCL</div>
+      <div class="cc-desc">多 GPU 集合通信：AllReduce、AllGather、ReduceScatter、Broadcast。PyTorch DDP 和 DeepSpeed 的底层依赖。自动感知 NVLink / PCIe / InfiniBand 拓扑选择最优路径。</div>
+    </div>
+    <div class="comp-card">
+      <div class="cc-name">GPUDirect RDMA</div>
+      <div class="cc-desc">GPU 显存绕过 CPU 和系统内存，直接通过 InfiniBand/RoCE 与远端 GPU 通信，大幅降低多机训练通信延迟。</div>
+    </div>
+  </div>
+
+  <h3 id="ch4-tool">调试与性能分析工具</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>工具</th><th>级别</th><th>作用</th></tr></thead>
+      <tbody>
+        <tr><td><code>Nsight Systems</code></td><td>系统级</td><td>CPU+GPU+内存+网络时间线，找整体性能瓶颈（CPU-GPU 同步气泡、数据搬运开销）</td></tr>
+        <tr><td><code>Nsight Compute</code></td><td>Kernel 级</td><td>Roofline 分析、内存带宽利用率、Warp 效率、Tensor Core 利用率</td></tr>
+        <tr><td><code>cuda-gdb</code></td><td>调试</td><td>在 GPU kernel 内设断点、查看线程变量，调试 GPU 逻辑错误</td></tr>
+        <tr><td><code>compute-sanitizer</code></td><td>内存安全</td><td>检测 GPU 内存越界、竞争条件、未初始化内存（类似 CPU 的 Valgrind）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>容器镜像层次结构</h3>
+  <pre><code>nvidia/cuda:&lt;ver&gt;-base          <span class="cm"># 只有驱动 stub + libcuda</span>
+nvidia/cuda:&lt;ver&gt;-runtime       <span class="cm"># + libcudart（运行时）</span>
+nvidia/cuda:&lt;ver&gt;-devel         <span class="cm"># + nvcc + 头文件（完整开发环境）</span>
+nvidia/cuda:&lt;ver&gt;-cudnn&lt;v&gt;-devel <span class="cm"># + cuDNN（训练首选）</span></code></pre>
+</section>
+
+<!-- ══════════════ CHAPTER 5 ══════════════ -->
+<section class="chapter" id="ch5">
+  <div class="chapter-header">
+    <div class="chapter-num">05</div>
+    <div class="chapter-title">TensorRT 版本与 CUDA 版本的关系</div>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-icon">📌</div>
+    <div>TensorRT 采用<strong>单一构建策略</strong>：一个构建基于某 CUDA Toolkit 版本，对该大版本下所有小版本保持兼容。<strong>CUDA 大版本跨越（11→12）需要换对应 TRT 构建线，不能混用。</strong></div>
+  </div>
+
+  <h3 id="ch5-matrix">版本兼容矩阵</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>TRT 版本</th><th>CUDA 11.x</th><th>CUDA 12.x</th><th>cuDNN 要求</th><th>最低驱动</th></tr></thead>
+      <tbody>
+        <tr><td>7.x</td><td>10.2 / 11.0</td><td>—</td><td>8.0.x（必须）</td><td>418.x</td></tr>
+        <tr><td>8.4 – 8.5</td><td>11.x（以11.8构建）</td><td>—</td><td>8.6（必须）</td><td>450.x</td></tr>
+        <tr><td>8.6</td><td>11.x</td><td>12.x</td><td>8.9（8.6.3起<strong>可选</strong>）</td><td>525.x</td></tr>
+        <tr><td>9.x</td><td>11.x</td><td>12.x</td><td>8.9（可选）</td><td>525.x</td></tr>
+        <tr><td>10.0 – 10.6</td><td>11.8</td><td>12.x（≤12.6）</td><td>8.9.7（可选）</td><td>525.x</td></tr>
+        <tr><td>10.7 – 10.8</td><td>—</td><td>12.8</td><td>8.9.7（可选）</td><td>550.x</td></tr>
+        <tr><td>10.9 – 10.16（latest）</td><td>—</td><td>12.x / 13.x</td><td>可选</td><td>570.x</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-icon">⚠️</div>
+    <div><strong>重要变化：</strong>从 TRT 8.6.3 开始，cuDNN 从强依赖变为可选依赖。TRT 核心功能（builder/engine/inference）完全不需要 cuDNN，只有使用某些特定插件时才需要。</div>
+  </div>
+
+  <h3 id="ch5-engine">序列化引擎（.plan / .engine）的三个不可移植维度</h3>
+  <div class="compat-grid">
+    <div class="compat-item">
+      <div class="ci-title" style="color:var(--red)">维度 1：平台</div>
+      <div class="ci-bad">❌ Linux ↔ Windows 不可互用</div>
+      <div class="ci-bad">❌ 无解法，必须重建</div>
+    </div>
+    <div class="compat-item">
+      <div class="ci-title" style="color:var(--amber)">维度 2：TRT 版本</div>
+      <div class="ci-bad">❌ 默认不跨版本</div>
+      <div class="ci-good">✅ version-compatible flag<br>（TRT≥8.6，同大版本内）</div>
+    </div>
+    <div class="compat-item">
+      <div class="ci-title" style="color:var(--green)">维度 3：GPU 架构</div>
+      <div class="ci-bad">❌ 默认绑定 sm_XY</div>
+      <div class="ci-good">✅ AMPERE_PLUS 模式<br>（sm≥8.0 均可运行）</div>
+    </div>
+  </div>
+
+  <pre><code><span class="kw">import</span> tensorrt <span class="kw">as</span> trt
+
+config = builder.create_builder_config()
+
+<span class="cm"># 开启版本兼容（同大版本内的更新 TRT 可加载）</span>
+config.set_flag(trt.BuilderFlag.<span class="nm">VERSION_COMPATIBLE</span>)
+
+<span class="cm"># 开启硬件兼容（Ampere 及以上 GPU sm_80+ 均可运行）</span>
+config.hardware_compatibility_level = trt.HardwareCompatibilityLevel.<span class="nm">AMPERE_PLUS</span></code></pre>
+
+  <h3>安装方式（区分 CUDA 大版本）</h3>
+  <pre><code><span class="cm"># pip 方式安装（必须区分 CUDA 大版本）</span>
+pip install tensorrt-cu12          <span class="cm"># CUDA 12.x 构建</span>
+pip install tensorrt-cu11          <span class="cm"># CUDA 11.x 构建（逐渐停止维护）</span>
+
+<span class="cm"># 推荐：直接使用 NGC 官方容器（版本已预先匹配）</span>
+docker pull nvcr.io/nvidia/tensorrt:24.12-py3
+<span class="cm"># 容器内已集成：CUDA 12.x + TensorRT 10.x + cuDNN 9.x + Python 3.10</span></code></pre>
+
+  <h3>完整依赖链</h3>
+  <div class="flow">
+    <div class="flow-step"><div class="flow-box" style="border-color:var(--amber)">宿主机驱动版本 → <code>nvidia-smi</code> 的 CUDA Version（上限）</div></div>
+    <div class="flow-arrow">↓ 决定上限</div>
+    <div class="flow-step"><div class="flow-box" style="border-color:var(--blue)">CUDA Toolkit 大版本（11.x 或 12.x）</div></div>
+    <div class="flow-arrow">↓ 决定用哪条 TRT 构建线</div>
+    <div class="flow-step"><div class="flow-box" style="border-color:var(--purple)">TensorRT 版本（对应 CUDA 11.x 或 12.x 构建）</div></div>
+    <div class="flow-arrow">↓ TRT ≥ 8.6.3 时 cuDNN 可选</div>
+    <div class="flow-step"><div class="flow-box" style="border-color:var(--green)">cuDNN 版本（如使用 cuDNN 依赖的插件）</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-box" style="border-color:var(--red)">序列化引擎（.engine）— 绑定 TRT 版本 + GPU sm_XY<br><span style="font-size:12px;color:var(--text2)">可用 version-compat / hardware-compat flag 放宽限制</span></div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-box">推理部署</div></div>
+  </div>
+</section>
+
+<!-- ══════════════ CHAPTER 6 ══════════════ -->
+<section class="chapter" id="ch6">
+  <div class="chapter-header">
+    <div class="chapter-num">06</div>
+    <div class="chapter-title">cuda-compat 详解及实操问题</div>
+  </div>
+
+  <h3>两套兼容机制对比</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th></th><th>小版本兼容（Minor Version）</th><th>前向兼容（Forward / cuda-compat）</th></tr></thead>
+      <tbody>
+        <tr><td><strong>适用场景</strong></td><td>CUDA 11.8 应用 → 驱动 525（CUDA 12.0）</td><td>CUDA 12.8 应用 → 驱动 535（CUDA 12.2）</td></tr>
+        <tr><td><strong>需要安装包</strong></td><td>不需要，自动生效</td><td>需要安装 cuda-compat-12-8</td></tr>
+        <tr><td><strong>适用 GPU</strong></td><td>所有 GPU</td><td>仅数据中心 GPU / 部分 NGC RTX / Jetson</td></tr>
+        <tr><td><strong>PTX JIT</strong></td><td>❌ 旧驱动上不可用</td><td>✅ compat 包含新版 ptxjitcompiler</td></tr>
+        <tr><td><strong>OpenGL/Vulkan Interop</strong></td><td>✅ 正常</td><td>❌ 不支持</td></tr>
+        <tr><td><strong>从 CUDA 几开始</strong></td><td>CUDA 11+</td><td>CUDA 10.0+</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="ch6-how">cuda-compat 工作原理</h3>
+  <p>核心机制：<strong>通过 <code>LD_LIBRARY_PATH</code> 优先级拦截 <code>libcuda.so</code> 调用</strong>，将新版 libcuda.so 放在系统原版之前。</p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">拦截机制流程</div>
+    <svg viewBox="0 0 640 300" width="100%" style="max-width:640px;display:block;margin:0 auto;">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#82aaff" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#4fd6be" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="arr3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#ffc777" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- App -->
+      <rect x="200" y="10" width="240" height="44" rx="8" fill="#1a1535" stroke="#c099ff" stroke-width="1"/>
+      <text x="320" y="37" text-anchor="middle" fill="#c099ff" font-size="13" font-family="monospace">CUDA 12.8 应用</text>
+      <!-- arrow down -->
+      <line x1="320" y1="54" x2="320" y2="76" stroke="#82aaff" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="336" y="68" fill="#4a5680" font-size="11" font-family="monospace">调用 CUDA API</text>
+      <!-- LD search box -->
+      <rect x="40" y="78" width="560" height="74" rx="8" fill="#161b27" stroke="#2a3350" stroke-width="1" stroke-dasharray="4 3"/>
+      <text x="56" y="97" fill="#4a5680" font-size="11" font-family="monospace">动态链接器按 LD_LIBRARY_PATH 顺序搜索</text>
+      <!-- compat libcuda -->
+      <rect x="56" y="104" width="230" height="38" rx="6" fill="#0d2020" stroke="#4fd6be" stroke-width="1"/>
+      <text x="171" y="120" text-anchor="middle" fill="#4fd6be" font-size="12" font-family="monospace" font-weight="bold">libcuda.so（compat）</text>
+      <text x="171" y="133" text-anchor="middle" fill="#7c8db0" font-size="11" font-family="monospace">/cuda-12.8/compat/ v570</text>
+      <!-- system libcuda (grayed) -->
+      <rect x="362" y="104" width="222" height="38" rx="6" fill="#1a1a1a" stroke="#2a3350" stroke-width="1" opacity="0.5"/>
+      <text x="473" y="120" text-anchor="middle" fill="#4a5680" font-size="12" font-family="monospace">libcuda.so（系统）</text>
+      <text x="473" y="133" text-anchor="middle" fill="#3a4560" font-size="11" font-family="monospace">/usr/lib/ v535 ← 被覆盖</text>
+      <!-- arrow down from compat -->
+      <line x1="171" y1="152" x2="171" y2="186" stroke="#4fd6be" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <text x="187" y="174" fill="#4a5680" font-size="11" font-family="monospace">API 翻译</text>
+      <!-- translation box -->
+      <rect x="56" y="188" width="230" height="44" rx="6" fill="#2a1f0d" stroke="#ffc777" stroke-width="1"/>
+      <text x="171" y="207" text-anchor="middle" fill="#ffc777" font-size="12" font-family="monospace" font-weight="bold">CUDA API 翻译层</text>
+      <text x="171" y="222" text-anchor="middle" fill="#7c8db0" font-size="11" font-family="monospace">新 API → 旧驱动 ioctl</text>
+      <!-- arrow to kernel -->
+      <line x1="171" y1="232" x2="171" y2="262" stroke="#ffc777" stroke-width="1.5" marker-end="url(#arr3)"/>
+      <!-- kernel module -->
+      <rect x="56" y="264" width="230" height="30" rx="6" fill="#2d0e0e" stroke="#ff757f" stroke-width="1"/>
+      <text x="171" y="283" text-anchor="middle" fill="#ff757f" font-size="12" font-family="monospace">nvidia.ko 内核模块（v535）</text>
+    </svg>
+  </div>
+
+  <pre><code><span class="cm"># compat 包安装（以 Ubuntu 为例）</span>
+<span class="fn">apt</span> install cuda-compat-12-8
+<span class="cm"># 安装后文件位于：/usr/local/cuda-12.8/compat/</span>
+
+<span class="cm"># 手动激活（NGC 容器自动处理）</span>
+<span class="kw">export</span> <span class="nm">LD_LIBRARY_PATH</span>=/usr/local/cuda-12.8/compat:<span class="nm">$LD_LIBRARY_PATH</span>
+
+<span class="cm"># compat 包包含的文件</span>
+libcuda.so.*                   <span class="cm"># CUDA 驱动（核心）</span>
+libcudadebugger.so.*           <span class="cm"># GPU 调试支持</span>
+libnvidia-nvvm.so.*            <span class="cm"># JIT LTO</span>
+libnvidia-ptxjitcompiler.so.*  <span class="cm"># PTX JIT 编译器</span>
+libnvidia-pkcs11*.so.*         <span class="cm"># OpenSSL 支持</span></code></pre>
+
+  <h3 id="ch6-matrix">前向兼容矩阵</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>compat 包</th>
+          <th>驱动 535<br><small>（CUDA 12.2）</small></th>
+          <th>驱动 550<br><small>（CUDA 12.4）</small></th>
+          <th>驱动 570<br><small>（CUDA 12.8）</small></th>
+          <th>驱动 580<br><small>（CUDA 13.0）</small></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>cuda-compat-12-3</code></td><td class="matrix-cell mc-c">C</td><td class="matrix-cell mc-x">X</td><td class="matrix-cell mc-x">X</td><td class="matrix-cell mc-x">X</td></tr>
+        <tr><td><code>cuda-compat-12-4</code></td><td class="matrix-cell mc-c">C</td><td class="matrix-cell mc-na">N/A</td><td class="matrix-cell mc-x">X</td><td class="matrix-cell mc-x">X</td></tr>
+        <tr><td><code>cuda-compat-12-6</code></td><td class="matrix-cell mc-c">C</td><td class="matrix-cell mc-c">C</td><td class="matrix-cell mc-x">X</td><td class="matrix-cell mc-x">X</td></tr>
+        <tr><td><code>cuda-compat-12-8</code></td><td class="matrix-cell mc-c">C</td><td class="matrix-cell mc-c">C</td><td class="matrix-cell mc-na">N/A</td><td class="matrix-cell mc-x">X</td></tr>
+        <tr><td><code>cuda-compat-13-0</code></td><td class="matrix-cell mc-c">C</td><td class="matrix-cell mc-c">C</td><td class="matrix-cell mc-c">C</td><td class="matrix-cell mc-na">N/A</td></tr>
+        <tr><td><code>cuda-compat-13-1</code></td><td class="matrix-cell mc-c">C</td><td class="matrix-cell mc-c">C</td><td class="matrix-cell mc-c">C</td><td class="matrix-cell mc-c">C</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:13px;color:var(--text2)">
+    <span class="badge badge-green">C</span> 兼容可用 &nbsp;
+    <span class="badge badge-red">X</span> 不兼容（compat包版本低于驱动原生支持，无意义）&nbsp;
+    <span class="badge badge-gray">N/A</span> 不需要（驱动原生支持该 CUDA 版本）
+  </p>
+
+  <h3>功能例外：compat 无法覆盖的特性</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>功能</th><th>能否通过 compat 解决</th></tr></thead>
+      <tbody>
+        <tr><td>CUDA OpenGL / Vulkan Interop</td><td><span class="badge badge-red">❌ 需升级整机驱动</span></td></tr>
+        <tr><td><code>cuMemMap*</code> 虚拟内存映射</td><td><span class="badge badge-green">✅ 支持（驱动≥450）</span></td></tr>
+        <tr><td>PTX JIT 编译</td><td><span class="badge badge-green">✅ compat 自带 ptxjitcompiler</span></td></tr>
+        <tr><td>新 SM 架构原生指令</td><td><span class="badge badge-red">❌ 需整机驱动支持</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="ch6-pitfall">实操中常见问题</h3>
+
+  <h4>问题 1：compat 包装上了，但仍报驱动版本不足</h4>
+  <p>原因：<code>LD_LIBRARY_PATH</code> 顺序不对，compat 路径被系统路径覆盖。</p>
+  <pre><code><span class="cm"># ❌ 错误用法（compat 在后，被覆盖）</span>
+<span class="kw">export</span> <span class="nm">LD_LIBRARY_PATH</span>=/usr/lib/x86_64-linux-gnu:/usr/local/cuda-12.8/compat
+
+<span class="cm"># ✅ 正确用法（compat 必须在最前面）</span>
+<span class="kw">export</span> <span class="nm">LD_LIBRARY_PATH</span>=/usr/local/cuda-12.8/compat:<span class="nm">$LD_LIBRARY_PATH</span>
+
+<span class="cm"># 验证加载了哪个 libcuda</span>
+<span class="fn">ldconfig</span> -p | <span class="fn">grep</span> libcuda
+<span class="fn">ldd</span> /usr/bin/nvidia-smi | <span class="fn">grep</span> libcuda</code></pre>
+
+  <h4>问题 2：容器内 compat 与宿主机注入的 libcuda 冲突</h4>
+  <p>nvidia-container-runtime 会自动将宿主机 <code>libcuda.so</code> 注入容器，若同时手动安装了 compat 包，两份 <code>libcuda.so</code> 共存，加载顺序决定行为：</p>
+  <pre><code><span class="cm"># 容器内可能出现的共存状态</span>
+/usr/local/cuda-12.8/compat/libcuda.so.570.xx   <span class="cm">← 手动安装的 compat</span>
+/usr/lib/x86_64-linux-gnu/libcuda.so.535.xx     <span class="cm">← runtime 从宿主机注入</span>
+
+<span class="cm"># ✅ compat 版本 > 宿主机驱动版本 → 正确行为</span>
+<span class="cm"># ❌ compat 版本 &lt; 宿主机驱动版本 → 降级，导致莫名崩溃</span></code></pre>
+
+  <h4>问题 3：消费级 GPU 无法使用前向兼容</h4>
+  <div class="callout danger">
+    <div class="callout-icon">🚫</div>
+    <div>GeForce RTX 3090、RTX 4090 等消费级卡尝试使用 cuda-compat 会报：<br><code>CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE = 804</code><br>唯一解法：<strong>升级宿主机驱动</strong>，没有绕路。</div>
+  </div>
+
+  <h4>问题 4：小版本兼容下 PTX JIT 失败</h4>
+  <p>小版本兼容时，旧驱动的 PTX 编译器不理解新 Toolkit 生成的 PTX 语法，导致 JIT 失败。前向兼容（cuda-compat）不存在此问题，因为 compat 包含新版 <code>libnvidia-ptxjitcompiler.so</code>。</p>
+  <pre><code><span class="cm"># 典型报错</span>
+CUDA error: device-side assert triggered
+no kernel image is available for execution on the device</code></pre>
+
+  <h4>问题 5：升级整机驱动后忘记删除 compat 包</h4>
+  <pre><code><span class="cm"># 升级驱动后必须清理 compat 包，否则两份 libcuda 共存</span>
+<span class="fn">apt</span> remove cuda-compat-12-*    <span class="cm"># Debian/Ubuntu</span>
+<span class="fn">dnf</span> remove cuda-compat-12-*   <span class="cm"># RHEL/Rocky</span>
+
+<span class="cm"># 验证清理后状态</span>
+<span class="fn">ls</span> /usr/local/cuda*/compat/    <span class="cm"># 应该为空或不存在</span></code></pre>
+
+  <h4>问题 6：错误码 803 / 804</h4>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>错误码</th><th>含义</th><th>原因及解法</th></tr></thead>
+      <tbody>
+        <tr><td><code>803</code><br>SYSTEM_DRIVER_MISMATCH</td><td>显示驱动与 CUDA 驱动版本不匹配</td><td>nvidia-container-runtime 版本与驱动不一致，或 /dev/nvidia* 权限异常</td></tr>
+        <tr><td><code>804</code><br>COMPAT_NOT_SUPPORTED</td><td>硬件不支持前向兼容配置</td><td>消费级 GPU 尝试使用 cuda-compat，需升级宿主机驱动</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>版本选型决策树</h3>
+  <div class="dtree">
+    <pre><code>宿主机驱动是否能升级？
+    ├── 能升级
+    │       └── 直接升到最新 LTS 驱动，无需 compat，最省事 ✅
+    │
+    └── 不能升级（生产服务器）
+            ├── 是数据中心 GPU（V100 / A100 / H100）？
+            │       ├── 是
+            │       │     ├── 安装 cuda-compat-&lt;目标版本&gt; 包
+            │       │     ├── 设置 LD_LIBRARY_PATH（NGC 容器自动处理）
+            │       │     └── ⚠️  注意：OpenGL/Vulkan interop 不可用
+            │       └── 否（GeForce 消费级）
+            │             └── 只能降低容器内 CUDA Toolkit 版本 ❌
+            │
+            └── 仅 CUDA 小版本差异？（如驱动支持12.2，要跑12.1）
+                    └── 小版本兼容自动生效，无需任何操作
+                          ⚠️  但注意：PTX JIT 在旧驱动上不可用</code></pre>
+  </div>
+</section>
+
+<!-- ══════════════ APPENDIX ══════════════ -->
+<section class="chapter" id="appendix">
+  <div class="chapter-header">
+    <div class="chapter-num">附</div>
+    <div class="chapter-title">常用诊断命令速查</div>
+  </div>
+
+  <pre><code><span class="cm"># ─── 基础信息 ───</span>
+<span class="fn">nvidia-smi</span>                              <span class="cm"># 宿主机驱动版本 + 最高 CUDA 版本</span>
+<span class="fn">nvidia-smi</span> --query-gpu=name,compute_cap --format=csv  <span class="cm"># GPU 名称和 SM 架构</span>
+<span class="fn">nvcc</span> --version                          <span class="cm"># 容器内 Toolkit 版本</span>
+python -c <span class="st">"import torch; print(torch.version.cuda)"</span>  <span class="cm"># PyTorch 链接的 CUDA 版本</span>
+
+<span class="cm"># ─── 库加载验证 ───</span>
+<span class="fn">ldconfig</span> -p | <span class="fn">grep</span> libcuda              <span class="cm"># 所有可找到的 libcuda</span>
+<span class="fn">ldd</span> $(<span class="fn">which</span> python) | <span class="fn">grep</span> cuda         <span class="cm"># Python 链接的 CUDA 库</span>
+<span class="kw">echo</span> <span class="nm">$LD_LIBRARY_PATH</span>                   <span class="cm"># 当前路径配置</span>
+
+<span class="cm"># ─── compat 检查 ───</span>
+<span class="fn">ls</span> -la /usr/local/cuda*/compat/         <span class="cm"># 查看 compat 包文件</span>
+<span class="fn">dpkg</span> -l | <span class="fn">grep</span> cuda-compat               <span class="cm"># 已安装的 compat 包</span>
+
+<span class="cm"># ─── 已安装 NVIDIA 相关包 ───</span>
+<span class="fn">dpkg</span> -l | <span class="fn">grep</span> -i nvidia
+<span class="fn">dpkg</span> -l | <span class="fn">grep</span> -i cuda
+
+<span class="cm"># ─── TensorRT 验证 ───</span>
+python -c <span class="st">"import tensorrt; print(tensorrt.__version__)"</span>
+python -c <span class="st">"import tensorrt as trt; print(trt.__version__)"</span>
+
+<span class="cm"># ─── cuDNN 验证 ───</span>
+python -c <span class="st">"import torch; print(torch.backends.cudnn.version())"</span>
+<span class="fn">find</span> /usr -name <span class="st">"libcudnn.so*"</span> 2>/dev/null</code></pre>
+</section>
+
+</main>
+</div>
+
+<script>
+  // Highlight active nav on scroll
+  const sections = document.querySelectorAll('.chapter');
+  const navItems = document.querySelectorAll('.nav-item');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const id = e.target.id;
+        navItems.forEach(n => {
+          n.classList.toggle('active', n.getAttribute('href') === '#' + id);
+        });
+      }
+    });
+  }, { threshold: 0.2 });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
