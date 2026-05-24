@@ -23,7 +23,7 @@ git commit -m "Add: <文章标题>"
 git push
 ```
 
-提交信息不加 Co-Authored-By 行。
+提交信息不加 Co-Authored-By 行。Author 统一使用 `Frank <wfeng6@gmail.com>`（已通过项目级 git config 设置，无需手动指定）。
 
 ---
 
